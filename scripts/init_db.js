@@ -17,7 +17,7 @@ const initDB = async () => {
                 password TEXT NOT NULL,
                 admin BOOLEAN NOT NULL DEFAULT FALSE
             );
-        `);
+        `); // test할 동안에는 테이블이 계속 없어지면 불편하니 유지.
 
         console.log('Database initialization completed successfully.');
     } catch (err) {
