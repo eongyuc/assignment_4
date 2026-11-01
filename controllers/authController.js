@@ -120,4 +120,5 @@ module.exports = {
     logoutAndGetHomePage,
     postLogin,
     postRegister,
-};
+}; 
+// commit test!
