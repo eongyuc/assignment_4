@@ -9,6 +9,15 @@ const initDB = async () => {
         // Create tables
         console.log('Creating new tables...');
         // TODO: 설계한 스키마에 맞춰 새로운 테이블을 생성하는 코드를 작성하세요.
+        
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS users (
+                uid INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                login_id VARCHAR(50) NOT NULL UNIQUE,
+                password TEXT NOT NULL,
+                admin BOOLEAN NOT NULL DEFAULT FALSE
+            );
+        `);
 
         console.log('Database initialization completed successfully.');
     } catch (err) {
