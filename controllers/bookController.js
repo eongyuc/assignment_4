@@ -72,16 +72,16 @@ const getAddBookPage = async (req, res, next) => {
             FROM category
             ORDER BY cname;    
         `);
-        
+
         // 작가 이름 목록 가져오기. 동명이인 존재 가능성 때문에 distinct.
-        const auathorResult = await db.query(`
+        const authorResult = await db.query(`
             SELECT DISTINCT author AS name
             FROM book
             ORDER BY name;    
         `);
 
         // 기존 EJS에서 사용할 수 있는 형태로 변환
-        const authors = auathorResult.rows.map(author => ({
+        const authors = authorResult.rows.map(author => ({
             id: author.name,
             name: author.name
         }));
@@ -103,20 +103,20 @@ const postAddBook = async (req, res, next) => {
 
     // 1. 입력값 확인
     const bookTitle = typeof title === 'string' ? title.trim() : '';
-    const authorName  = typeof authors === 'string' ? authors.trim() : '';
+    const authorName = typeof authors === 'string' ? authors.trim() : '';
     const bookQuantity = Number(quantity);
     // bookTitle이 '' 인 경우에는 bookTitle이 false.
-    
+
     // 오류 처리
-    if (!bookTitle || !authorName || 
-        !Number.isSafeInteger(bookQuantity) || bookQuantity < 1){
-            return res.status(400).send('올바른 도서 정보를 입력하세요.');
+    if (!bookTitle || !authorName ||
+        !Number.isSafeInteger(bookQuantity) || bookQuantity < 1) {
+        return res.status(400).send('올바른 도서 정보를 입력하세요.');
     }
 
     // category는 하나일 수도, 여러 개일 수도 있음.
     // category가 정의 안되면 빈 배열, 배열인 경우 그대로 사용, 정의는 됐으나 배열이 아니면 배열로 만들기.
     const categoryInputs = categories === undefined ? [] : Array.isArray(categories) ? categories : [categories];
-    
+
     // ... 은 SET안에 들어있는 값들을 펼쳐서 하나의 배열로 만들어라.
     // SET함수의 결과는 배열이 아닌 {'a', 'b'} 같은 객체 이므로 map, filter함수 사용 x
     // filter로 값이 string인 것만 남김.
@@ -148,28 +148,41 @@ const postAddBook = async (req, res, next) => {
         await client.query('BEGIN');
 
         // 3. book 테이블에 도서 정보 저장
-        // title 에 $1, author에 $2 집어넣음.각각 bookTitle, authorName.
-        // RETURNING 한다는 것은
-        /*
-        자동으로 생성해준 bid가 3이라고 가정했을 때,
-        bookResult = {
-            rows: [
-                 {bid: 3}
-                 ],
-                 rowCount: 1,
-                 // 그 밖의 정보
-        };
-        이라고 할 수 있음.
-        따라서 bookResult.rows[0] = 3.
-        */
-        const bookResult = await client.query(`
-            INSERT INTO book (title, author)
-            VALUES ($1, $2)
-            RETURNING bid`
-            , [bookTitle, authorName]);
+        const existingBook = await client.query(`
+            SELECT bid
+            FROM book
+            WHERE title = $1 AND author = $2;
+            `, [bookTitle, authorName]);
 
-        const bookId = bookResult.rows[0].bid;
+        let bookId;
 
+        if (existingBook.rows.length > 0) {
+            // 이미 존재하는 도서라면 기존 bid 사용
+            bookId = existingBook.rows[0].bid;
+        } else { // 존재하지 않는 도서라면 새로 추가
+            // title 에 $1, author에 $2 집어넣음.각각 bookTitle, authorName.
+            // RETURNING 한다는 것은
+            /*
+            자동으로 생성해준 bid가 3이라고 가정했을 때,
+            bookResult = {
+                rows: [
+                     {bid: 3}
+                     ],
+                     rowCount: 1,
+                     // 그 밖의 정보
+            };
+            이라고 할 수 있음.
+            따라서 bookResult.rows[0].bid = 3.
+            */
+            const bookResult = await client.query(`
+                INSERT INTO book (title, author)
+                VALUES ($1, $2)
+                RETURNING bid`
+                , [bookTitle, authorName]);
+
+            bookId = bookResult.rows[0].bid;
+
+        }
         // 4. 수량만큼 product 테이블에 소장본 추가
         // $1은 bookId
         // 즉, bid를 가진 행을 bookQuantity만큼 생성. 물론 pid는 자동생성.
@@ -179,15 +192,15 @@ const postAddBook = async (req, res, next) => {
                 VALUES ($1);
                 `, [bookId]);
         }
-        
+
         // 5. 카테고리 저장 및 도서와 연결
         // for(... of)문을 사용하여 배열의 원소를 하나씩 꺼내 반복함.
         for (const categoryValue of categoryNames) {
-            let categoryId; 
+            let categoryId;
             // const와 달라 let은 선언한 변수에 다른 값을 넣을 수 있음.
             // let 또한 변수 선언임. 처음엔 undefined 저장.
 
-            if (categoryValue.startsWith('id:')){
+            if (categoryValue.startsWith('id:')) {
                 // 기존 카테고리를 선택한 경우
                 // 서버에는 id:~ 형식으로 id가 전달됨. 
                 // 따라서 id: 로 시작한 문자열은 이미 존재하는 문자열
@@ -220,9 +233,9 @@ const postAddBook = async (req, res, next) => {
                     RETURNING cid;`
                     , [categoryValue]);
 
-                    categoryId = result.rows[0].cid;
+                categoryId = result.rows[0].cid;
             }
-            
+
             // 도서와 카테고리 연결
             // 만약 원래 존재하던 bid, cid 조합일 경우 그냥 건너뛰자.
             await client.query(`
@@ -234,7 +247,7 @@ const postAddBook = async (req, res, next) => {
 
         // 6. 모든 작업이 성공하면 확정
         await client.query('COMMIT');
-        
+
         res.redirect('/books');
     } catch (err) {
         // 오류 발생 시 변경사항 취소
@@ -319,8 +332,8 @@ const getBookInstances = async (req, res, next) => {
     const bookId = Number(req.params.id);
     const dummyInstances = [
         { id: 1, book_id: 1, borrowing_id: null, borrowed_by: null, borrow_date: null, status: 'available' },
-        { id: 2, book_id: 1, borrowing_id: 1, borrowed_by: 'user1', borrow_date: '2025.10.01',status: 'borrowed' },
-        { id: 3, book_id: 1, borrowing_id: null, borrowed_by: null, borrow_date: null,status: 'available' },
+        { id: 2, book_id: 1, borrowing_id: 1, borrowed_by: 'user1', borrow_date: '2025.10.01', status: 'borrowed' },
+        { id: 3, book_id: 1, borrowing_id: null, borrowed_by: null, borrow_date: null, status: 'available' },
     ];
 
     try {

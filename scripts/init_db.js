@@ -35,7 +35,9 @@ const initDB = async () => {
             CREATE TABLE IF NOT EXISTS book(
                 bid INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                 title VARCHAR(255) NOT NULL,
-                author VARCHAR(255) NOT NULL);
+                author VARCHAR(255) NOT NULL,
+                UNIQUE (title, author)
+                );
         `);
 
         // category 테이블
