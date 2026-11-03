@@ -22,7 +22,7 @@ const postLogin = async (req, res, next) => {
     const { username, password } = req.body;
     try {
         /*
-            TODO: username과 password를 이용해 로그인하는 코드를 작성하세요.
+            clear! TODO: username과 password를 이용해 로그인하는 코드를 작성하세요.
         */
 
         // 1. 입력 확인
@@ -65,7 +65,7 @@ const postRegister = async (req, res, next) => {
 
     try {
         /*
-            TODO: username, password, role, admin_code를 이용해 새로운 계정을 추가하는 코드를 작성하세요.
+            clear! TODO: username, password, role, admin_code를 이용해 새로운 계정을 추가하는 코드를 작성하세요.
         */
         // 1. 아이디와 비밀번호 확인
         if (!username || !username.trim() || !password) {

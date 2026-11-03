@@ -13,6 +13,11 @@
         <main>
             <div class="card" style="max-width: 600px; margin: auto;">
                 <h2 class="mb-3"><%= title %></h2>
+                <%#
+                /books/add는 데이터를 전송할 서버의 URL
+                HTTP POST 요청을 사용해서 데이터를 전송한다는 뜻
+                option의 value가 authors 라는 이름으로 전송됨.
+                %>
                 <form action="/books/add" method="POST">
                     <div class="form-group">
                         <label for="title" class="form-label">Title</label>
@@ -23,8 +28,15 @@
                         <select id="authors-select" name="authors" class="form-label" required>
                             <option value="">Select or add an author</option>
                             <% authors.forEach(author => { %>
-                                <option value="id:<%= author.id %>"><%= author.name %></option>
-                            <% }); %>
+                                <option value="<%= author.name %>"><%= author.name %></option>
+                            <% }); %> 
+
+                            <%#
+                            author 테이블이 따로 없으므로 작가 아이디가 없음.
+                            따라서 작가 이름을 서버로 전달.
+                            id: 접두사를 제거했으므로 postAddBook도 저자 이름을 문자열로 처리해야 함.
+                            %>
+                            
                         </select>
                     </div>
                     <div class="form-group">

@@ -4,11 +4,22 @@ const initDB = async () => {
     try {
         // Drop existing tables in the correct order
         console.log('Deleting existing tables...');
-        // TODO: 기존 테이블 제거하는 코드를 작성하세요.
+        // clear! TODO: 기존 테이블 제거하는 코드를 작성하세요.
+        
+        /* 테스트 시 테이블 삭제방지를 위해 주석처리
+        await db.query(`
+            DROP TABLE IF EXISTS borrow;
+            DROP TABLE IF EXISTS book_category;
+            DROP TABLE IF EXISTS product;
+            DROP TABLE IF EXISTS category;
+            DROP TABLE IF EXISTS book;
+            DROP TABLE IF EXISTS users;
+        `);
+        */
 
         // Create tables
         console.log('Creating new tables...');
-        // TODO: 설계한 스키마에 맞춰 새로운 테이블을 생성하는 코드를 작성하세요.
+        // clear! TODO: 설계한 스키마에 맞춰 새로운 테이블을 생성하는 코드를 작성하세요.
 
         await db.query(`
             CREATE TABLE IF NOT EXISTS users (
