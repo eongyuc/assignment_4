@@ -4,11 +4,16 @@
 const db = require('../config/db');
 
 const getBooksPage = async (req, res, next) => {
+    
+    // 웹페이지에서 검색하면 URL에 검색 조건이 전달됨.
+    // /books?query=Harry&searchBy=title 같이 전달됨.
+    // 이렇게 되면 searchQuery = 'Harry'; searchBy = 'title';
     const { query: searchQuery, searchBy, sortedBy, sortOrder } = req.query;
+    
     const sortedByWithDefault = req.query.sortBy || 'title';
     const sortOrderWithDefault = req.query.sortOrder || 'asc';
 
-    const dummyBooks = [ // 이 변수는 더미데이터입니다. 구현을 다하면 제거해주세요.
+    /*const dummyBooks = [ // 이 변수는 더미데이터입니다. 구현을 다하면 제거해주세요.
         {
             id: 1, title: 'The Hobbit', author: 'J.R.R Tolkien', categories: 'Fantasy', total_quantity: 4, available_quantity: 4
         },
@@ -30,15 +35,72 @@ const getBooksPage = async (req, res, next) => {
         {
             id: 7, title: 'Dune', author: 'Frank Herbert', categories: 'Science Fiction, Fantasy', total_quantity: 4, available_quantity: 4
         },
-    ];
+    ];*/
+
+    let searchCondition = '';
+    const params = [];
+    
+    if (searchQuery && searchQuery.trim()) {
+        const keyword = `%${searchQuery.trim()}%`;
+
+        if (searchBy === 'title') {
+            searchCondition = 'WHERE b.title ILIKE $1';
+        } else if (searchBy === 'author') {
+            searchCondition = 'WHERE b.author ILIKE $1';
+        } else if (searchBy === 'category') { // 검색어에 해당하는 장르를 가진 책의 id 있는지 확인
+            searchCondition = `
+                WHERE EXISTS(
+                    SELECT 1
+                    FROM book_category bc2
+                    JOIN category c2 ON bc2.cid = c2.cid
+                    WHERE bc2.bid = b.bid AND c2.cname ILIKE $1    
+                )
+            `;
+        }
+
+        // 검색어를 $1 매개변수로 전달하기 위한 코드.
+        if (searchCondition) {
+            params.push(keyword);
+        }
+    }
 
     try {
         /*
-            TODO: 검색어, 정렬 기준에 맞춰 책 목록을 출력하는 페이지를 렌더링하는 코드를 작성하세요.
+            cODO: 검색어, 정렬 기준에 맞춰 책 목록을 출력하는 페이지를 렌더링하는 코드를 작성하세요.
         */
+        // 1. DB에서 도서 목록 조회
+        const bookResult = await db.query(`
+            SELECT
+                b.bid AS id, b.title, b.author,
+                COALESCE(
+                    STRING_AGG(DISTINCT c.cname, ', ' ORDER BY c.cname), '') AS categories,
+                
+                COUNT(DISTINCT p.pid) AS total_quantity,
+
+                COUNT(DISTINCT p.pid) FILTER (
+                    WHERE NOT EXISTS(
+                        SELECT 1
+                        FROM borrow br
+                        WHERE br.pid = p.pid AND br.return_at IS NULL
+                    )
+                ) AS available_quantity
+
+            FROM book b
+
+            LEFT JOIN product p ON b.bid = p.bid
+            LEFT JOIN book_category bc ON b.bid = bc.bid
+            LEFT JOIN category c ON bc.cid = c.cid
+
+            ${searchCondition}
+
+            GROUP BY b.bid, b.title, b.author
+            ORDER BY b.title;
+            `, params);
+
+       // 2. 조회 결과를 EJS에 전달.
         res.render('pages/books', {
             title: 'All Books',
-            books: dummyBooks, // 정렬된 검색 결과 리스트가 전달되어야 합니다.
+            books: bookResult.rows, // 정렬된 검색 결과 리스트가 전달되어야 합니다. rows는 객체들의 배열
             sortBy: sortedByWithDefault,
             sortOrder: sortOrderWithDefault,
             query: searchQuery,
@@ -63,7 +125,7 @@ const getAddBookPage = async (req, res, next) => {
     ];
     try {
         /*
-            TODO: 책을 추가하는 페이지를 렌더링 하는 코드를 작성하세요.
+            cODO: 책을 추가하는 페이지를 렌더링 하는 코드를 작성하세요.
             책 추가 시 작가와 카테고리를 선택해야하므로 현재 카테고리 목록과 작가 목록을 불러와야 합니다.
         */
         // 카테고리 목록 가져오기.
@@ -134,7 +196,7 @@ const postAddBook = async (req, res, next) => {
 
     try {
         /*
-            TODO: 책을 DB에 추가하는 작업을 수행하는 코드를 작성하세요.
+            cODO: 책을 DB에 추가하는 작업을 수행하는 코드를 작성하세요.
             기존에 없는 카테고리와 저자 또한 추가해줘야 합니다.
         */
 
