@@ -4,42 +4,18 @@
 const db = require('../config/db');
 
 const getBooksPage = async (req, res, next) => {
-    
+
     // 웹페이지에서 검색하면 URL에 검색 조건이 전달됨.
     // /books?query=Harry&searchBy=title 같이 전달됨.
     // 이렇게 되면 searchQuery = 'Harry'; searchBy = 'title';
     const { query: searchQuery, searchBy, sortedBy, sortOrder } = req.query;
-    
+
     const sortedByWithDefault = req.query.sortBy || 'title';
     const sortOrderWithDefault = req.query.sortOrder || 'asc';
 
-    /*const dummyBooks = [ // 이 변수는 더미데이터입니다. 구현을 다하면 제거해주세요.
-        {
-            id: 1, title: 'The Hobbit', author: 'J.R.R Tolkien', categories: 'Fantasy', total_quantity: 4, available_quantity: 4
-        },
-        {
-            id: 2, title: 'The Lord of the Rings', author: 'J.R.R Tolkien', categories: 'Fantasy', total_quantity: 3, available_quantity: 2
-        },
-        {
-            id: 3, title: 'The Silmarillion', author: 'J.R.R Tolkien', categories: 'Fantasy', total_quantity: 2, available_quantity: 1
-        },
-        {
-            id: 4, title: 'The Children of Húrin', author: 'J.R.R Tolkien', categories: 'Fantasy', total_quantity: 1, available_quantity: 0
-        },
-        {
-            id: 5, title: 'Foundation', author: 'Isaac Asimov', categories: 'Science Fiction', total_quantity: 5, available_quantity: 5
-        },
-        {
-            id: 6, title: 'And Then There Were None', author: 'Agatha Christie', categories: 'Mystery', total_quantity: 3, available_quantity: 1
-        },
-        {
-            id: 7, title: 'Dune', author: 'Frank Herbert', categories: 'Science Fiction, Fantasy', total_quantity: 4, available_quantity: 4
-        },
-    ];*/
-
     let searchCondition = '';
     const params = [];
-    
+
     if (searchQuery && searchQuery.trim()) {
         const keyword = `%${searchQuery.trim()}%`;
 
@@ -63,6 +39,16 @@ const getBooksPage = async (req, res, next) => {
             params.push(keyword);
         }
     }
+
+    // 정렬기준 받기
+    const sortColumns = {
+        title: 'b.title',
+        author: 'b.author',
+        categories: 'categories'
+    };
+
+    const sortColumn = sortColumns[sortedByWithDefault] || 'b.title';
+    const sortDirection = sortOrderWithDefault === 'desc' ? 'DESC' : 'ASC';
 
     try {
         /*
@@ -94,10 +80,10 @@ const getBooksPage = async (req, res, next) => {
             ${searchCondition}
 
             GROUP BY b.bid, b.title, b.author
-            ORDER BY b.title;
+            ORDER BY ${sortColumn} ${sortDirection}, b.bid ASC;
             `, params);
 
-       // 2. 조회 결과를 EJS에 전달.
+        // 2. 조회 결과를 EJS에 전달.
         res.render('pages/books', {
             title: 'All Books',
             books: bookResult.rows, // 정렬된 검색 결과 리스트가 전달되어야 합니다. rows는 객체들의 배열
