@@ -378,17 +378,45 @@ const postReturnBook = async (req, res, next) => {
 
 const getBookInstances = async (req, res, next) => {
     const bookId = Number(req.params.id);
-    const dummyInstances = [
-        { id: 1, book_id: 1, borrowing_id: null, borrowed_by: null, borrow_date: null, status: 'available' },
-        { id: 2, book_id: 1, borrowing_id: 1, borrowed_by: 'user1', borrow_date: '2025.10.01', status: 'borrowed' },
-        { id: 3, book_id: 1, borrowing_id: null, borrowed_by: null, borrow_date: null, status: 'available' },
-    ];
 
     try {
         /*
             TODO: 특정 동일한 책의 개별 리스트를 불러오는 코드를 작성해주세요.
         */
-        res.json(dummyInstances);
+        // 1. 올바른 도서 ID인지 확인.
+        if (!Number.isSafeInteger(bookId) || bookId < 1) {
+            return res.status(400).json({
+                error: 'Invalid book ID'
+            });
+        }
+
+        // 2. 해당 도서의 개별 소장본 조회
+        const instanceResult = await db.query(`
+                SELECT p.pid AS id, p.bid AS book_id,
+                    br.brid AS borrowing_id, u.login_id AS borrowed_by,
+                    u.uid AS borrowed_by_id,
+                    TO_CHAR(br.borrow_at, 'YYYY-MM-DD') AS borrow_date,
+
+                    CASE
+                        WHEN br.brid IS NULL THEN 'available'
+                        ELSE 'borrowed'
+                    END AS status
+                FROM product p
+
+                LEFT JOIN borrow AS br
+                    ON p.pid = br.pid
+                    AND br.return_at IS NULL
+
+                LEFT JOIN users AS u
+                    ON br.uid = u.uid
+
+                WHERE p.bid = $1
+                ORDER BY p.pid;
+            
+            `, [bookId]);
+
+            // 3. 조회 결과를 ejs로 전달
+        res.json(instanceResult.rows);
     } catch (err) {
         next(err);
     }
