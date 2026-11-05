@@ -340,7 +340,7 @@ const postBorrowBook = async (req, res, next) => {
 
     try {
         /*
-            TODO: 특정 책을 대여하는 작업을 수행하는 코드를 작성하세요.
+            cODO: 특정 책을 대여하는 작업을 수행하는 코드를 작성하세요.
             명세에 있는 조건들을 어기는 작업일 경우에는 다음과 같이 에러페이지로 유도하면 됩니다.
 
             ```
@@ -349,7 +349,90 @@ const postBorrowBook = async (req, res, next) => {
                 return next(err);
             ```
         */
+               // 1. 올바른 소장본 ID인지 확인
+        if (!Number.isSafeInteger(bookInstanceId) || bookInstanceId < 1) {
+            const err = new Error('Invalid book instance ID.');
+            err.status = 400;
+            return next(err);
+        }
+
+        // 2. 해당 소장본이 실제로 존재하는지 확인
+        const productResult = await db.query(`
+            SELECT pid, bid
+            FROM product
+            WHERE pid = $1;
+            `, [bookInstanceId]);
+
+            if (productResult.rows.length === 0) {
+                const err = new Error('Book instance not found.');
+                err.status = 400;
+                return next(err);
+            }
+
+            const bookId = productResult.rows[0].bid;
+
+        // 3. 해당 소장본이 이미 대출 중인지 확인
+        const activeBorrowResult = await db.query(`
+            SELECT brid
+            FROM borrow
+            WHERE pid = $1 AND return_at IS NULL;
+            `, [bookInstanceId]);
+
+        if (activeBorrowResult.rows.length > 0) {
+            const err = new Error('This book instance is already borrowed.');
+            err.status = 400;
+            return next(err);
+        }
+
+        // 4. 사용자의 현재 대출 수 확인
+        const countResult = await db.query(`
+            SELECT COUNT(*) AS borrow_count
+            FROM borrow
+            WHERE uid = $1 AND return_at IS NULL;
+            `, [userId]);
+
+        if (Number(countResult.rows[0].borrow_count) >= 3) {
+            const err = new Error('You have reached the maximum borrowing limit (3 books).');
+            err.status = 400;
+            return next(err);
+        }
+
+        // 5. 동일한 책을 이미 대출 중인지 확인
+        const sameBookResult = await db.query(`
+            SELECT br.brid
+            FROM borrow br
+            JOIN product p ON br.pid = p.pid
+            WHERE br.uid = $1 AND p.bid = $2 AND br.return_at IS NULL;
+            `, [userId, bookId]);
+
+        if (sameBookResult.rows.length > 0) {
+            const err = new Error('You have already borrowed this book.');
+            err.status = 400;
+            return next(err);
+        }
+
+        // 6. 연체 중인 책이 있는지 확인
+        const overdueResult = await db.query(`
+            SELECT brid
+            FROM borrow
+            WHERE uid = $1 AND return_at IS NULL
+                AND borrow_at <= CURRENT_DATE - 7;
+            `, [userId]);
+
+        if (overdueResult.rows.length > 0) {
+            const err = new Error('You have an overdue book.');
+            err.status = 400;
+            return next(err);
+        }
+
+        // 7. 모든 조건을 만족하면 대출 기록 생성
+        await db.query(`
+            INSERT INTO borrow (uid, pid)
+            VALUES ($1, $2);
+            `, [userId, bookInstanceId]);
+
         res.redirect('/books');
+
     } catch (err) {
         next(err);
     }
@@ -369,7 +452,52 @@ const postReturnBook = async (req, res, next) => {
             TODO: 자신이 책을 빌린 기록을 반납 처리하는 코드를 작성해주세요.
             다른 사람이 빌린 책은 반납할 수 없어야 합니다.
         */
+        // 1. 올바른 대출 기록 ID인지 확인
+        if (!Number.isSafeInteger(borrowingId) || borrowingId < 1) {
+            const err = new Error('Invalid borrowing ID.');
+            err.status = 400;
+            return next(err);
+        }
+
+        // 2. 해당 대출 기록이 존재하는지 확인
+        const borrowResult = await db.query(`
+            SELECT uid, return_at
+            FROM borrow
+            WHERE brid = $1;
+            `, [borrowingId]);
+        
+        if (borrowResult.rows.length === 0) {
+            const err = new Error('Borrowing record not found.');
+            err.status = 404;
+            return next(err);
+        }
+
+        const borrowing = borrowResult.rows[0];
+
+        // 3. 현재 사용자가 빌린 책인지 확인
+        if (borrowing.uid !== userId) {
+            const err = new Error('You cannot return another user\'s book.');
+            err.status = 403;
+            return next(err);
+        }
+
+        // 4. 이미 반납한 책인지 확인
+        if (borrowing.return_at !== null) {
+            const err = new Error('This book has already been returned.');
+            err.status = 400;
+            return next(err);
+        }
+        
+        // 5. 반납 날짜 기록
+        await db.query(`
+            UPDATE borrow
+            SET return_at = CURRENT_DATE
+            WHERE brid = $1;
+            `, [borrowingId]);
+
+        // 6. 대출 내역 페이지로 이동
         res.redirect('/borrowings');
+        
     } catch (err) {
         next(err);
     }
