@@ -351,7 +351,7 @@ const postDeleteBookInstance = async (req, res, next) => {
         if (productResult.rows.length === 0) {
             const err = new Error('Book instance not found.');
             err.status = 404;
-            throw next(err);
+            throw err;
         }
 
         const bookId = productResult.rows[0].bid;
@@ -368,7 +368,7 @@ const postDeleteBookInstance = async (req, res, next) => {
                 'This book instance has borrowing history and cannot be deleted.'
             );
             err.status = 400;
-            throw next(err);
+            throw err;
         }
 
         // 4. 소장본 삭제
@@ -406,7 +406,7 @@ const postDeleteBookInstance = async (req, res, next) => {
     } catch (err) {
         // 오류 발생시 변경 취소
         try {
-            await client.query('ROOLBACK');
+            await client.query('ROLLBACK');
         } catch(rollbackErr) {
             console.error('Rollback failed:', rollbackErr);
         }
