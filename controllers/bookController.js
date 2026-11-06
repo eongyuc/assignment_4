@@ -318,14 +318,103 @@ const postAddBook = async (req, res, next) => {
 const postDeleteBookInstance = async (req, res, next) => {
     const bookInstanceId = Number(req.params.id);
 
+    // 관리자 권한 확인
+    if (req.session.role !== 'admin') {
+        const err = new Error('Admin access required');
+        err.status = 403;
+        return next(err);
+    }
+
+    // 1. 올바른 소장본 ID인지 확인
+    if (!Number.isSafeInteger(bookInstanceId) || bookInstanceId < 1) {
+        const err = new Error('Invalid book instance ID.');
+        err.status = 400;
+        return next(err);
+    }
+
+    const client = await db.pool.connect();
+
     try {
         /*
             TODO: 책 한 권을 제거하는 작업을 수행하는 코드를 작성하세요.
             동일한 책을 모두 제거하면 해당 책에 대한 정보도 지워지도록 구현해주세요.
         */
+        await client.query('BEGIN');
+
+        // 2. 해당 소장본이 존재하는지 확인
+        const productResult = await client.query(`
+            SELECT pid, bid
+            FROM product
+            WHERE pid = $1;
+            `, [bookInstanceId]);
+
+        if (productResult.rows.length === 0) {
+            const err = new Error('Book instance not found.');
+            err.status = 404;
+            throw next(err);
+        }
+
+        const bookId = productResult.rows[0].bid;
+
+        // 3. 해당 소장본에 대출 이력이 있는지 확인
+        const borrowResult = await client.query(`
+            SELECT brid
+            FROM borrow
+            WHERE pid = $1;
+            `, [bookInstanceId]);
+
+        if (borrowResult.rows.length > 0) {
+            const err = new Error(
+                'This book instance has borrowing history and cannot be deleted.'
+            );
+            err.status = 400;
+            throw next(err);
+        }
+
+        // 4. 소장본 삭제
+        await client.query(`
+            DELETE FROM product
+            WHERE pid = $1;
+            `, [bookInstanceId]);
+
+        // 5. 동일한 책의 남은 소장본 개수 확인
+        const remainingResult = await client.query(`
+            SELECT COUNT(*) AS remaining_count
+            FROM product
+            WHERE bid = $1;
+            `, [bookId]);
+
+        // 6. 마지막 소장본이었다면 책 정보도 삭제
+        if (Number(remainingResult.rows[0].remaining_count) === 0) {
+
+            // 책과 카테고리 사이의 연결 정보 삭제
+            await client.query(`
+                DELETE FROM book_category
+                WHERE bid = $1;
+                `, [bookId]);
+
+            // 책 자체의 정보 삭제
+            await client.query(`
+                DELETE FROM book
+                WHERE bid = $1;
+                `, [bookId]);
+        }
+
+        await client.query('COMMIT');
+
         res.redirect('/books');
     } catch (err) {
+        // 오류 발생시 변경 취소
+        try {
+            await client.query('ROOLBACK');
+        } catch(rollbackErr) {
+            console.error('Rollback failed:', rollbackErr);
+        }
+
         next(err);
+    } finally {
+        // 연결 반환
+        client.release();
     }
 };
 
