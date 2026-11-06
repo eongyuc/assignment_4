@@ -3,21 +3,50 @@ const db = require('../config/db');
 const getUsersPage = async (req, res, next) => {
     const { searchBy, query } = req.query;
 
-    const dummyUsers = [ // 이 변수는 더미데이터입니다. 구현을 다하면 제거해주세요.
-        { id: 1, username: 'admin', role: 'admin' },
-        { id: 2, username: 'user1', role: 'user' },
-        { id: 3, username: 'user2', role: 'user' },
-    ];
-
     try {
         /*
-            TODO: 검색어에 맞춰 유저 목록을 출력하는 페이지를 렌더링하는 코드를 작성하세요.
+            cODO: 검색어에 맞춰 유저 목록을 출력하는 페이지를 렌더링하는 코드를 작성하세요.
         */
+
+        const searchKeyword = typeof query === 'string' ? query.trim() : '';
+        const searchType = searchBy === 'role' ? 'role' : 'username';
+
+        let searchCondition = '';
+        const params = [];
+
+        if (searchKeyword) {
+            if (searchType === 'username') {
+                searchCondition = 'WHERE login_id ILIKE $1';
+                params.push(`%${searchKeyword}%`);
+            } else {
+                searchCondition = `
+                WHERE CASE
+                    WHEN admin = TRUE THEN 'admin'
+                    ELSE 'user'
+                END = $1
+                `;
+                params.push(searchKeyword.toLowerCase());
+            }
+        }
+
+        const userResult = await db.query(`
+            SELECT
+                uid AS id,
+                login_id AS username,
+                CASE
+                    WHEN admin = TRUE THEN 'admin'
+                    ELSE 'user'
+                END AS role
+            FROM users
+            ${searchCondition}
+            ORDER BY uid ASC;
+            `, params);
+
         res.render('pages/users', {
             title: 'User Management',
-            users: dummyUsers,
-            searchBy,
-            query
+            users: userResult.rows,
+            searchBy: searchType,
+            query: searchKeyword
         });
     } catch (err) {
         next(err);
