@@ -19,6 +19,8 @@
                             <th>Book Title</th>
                             <th>Author</th>
                             <th>Borrow Date</th>
+                            <th>Due Date</th>
+                            <th>Status</th>
                             <th>Return Date</th>
                             <th>Actions</th>
                         </tr>
@@ -30,6 +32,12 @@
                                 <td><%= borrowing.book_title %></td>
                                 <td><%= borrowing.book_author %></td>
                                 <td><%= borrowing.borrow_date %></td>
+                                <td><%= borrowing.due_date %></td>
+                                <td>
+                                    <span class="status-badge status-<%= borrowing.status.toLowerCase() %>">
+                                        <%= borrowing.status %>   
+                                    </span>
+                                </td> 
                                 <td><%= borrowing.return_date || '-' %></td>
                                 <td>
                                     <% if (!borrowing.return_date) { %>

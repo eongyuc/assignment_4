@@ -283,3 +283,27 @@ a:hover {
     padding: calc(var(--spacing-unit) * 2);
     margin-bottom: calc(var(--spacing-unit) * 2);
 }
+
+/* Borrowing Status */
+.status-badge {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.status-returned {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-borrowed {
+    background-color: #ffe0ec;
+    color: #a82d62;
+}
+
+.status-overdue {
+    background-color: #f8d7da;
+    color: #721c24;
+}

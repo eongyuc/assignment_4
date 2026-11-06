@@ -18,7 +18,15 @@ const getBorrowingsPage = async (req, res, next) => {
                 b.title AS book_title,
                 b.author AS book_author,
                 TO_CHAR(br.borrow_at, 'YYYY-MM-DD') AS borrow_date,
-                TO_CHAR(br.return_at, 'YYYY-MM-DD') AS return_date
+                TO_CHAR(br.return_at, 'YYYY-MM-DD') AS return_date,
+                TO_CHAR(br.borrow_at + 7, 'YYYY-MM-DD') AS due_date,
+
+                CASE
+                    WHEN br.return_at IS NOT NULL THEN 'Returned'
+                    WHEN br.borrow_at <= CURRENT_DATE - 7 THEN 'Overdue'
+                    ELSE 'Borrowed'
+                END AS status
+            
             FROM borrow br
             JOIN product p ON br.pid = p.pid
             JOIN book b ON p.bid = b.bid
