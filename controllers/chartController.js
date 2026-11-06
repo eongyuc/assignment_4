@@ -3,39 +3,84 @@ const db = require('../config/db');
 const getChartsPage = async (req, res, next) => {
     let selectedCategoryId = req.query.categoryId ? Number(req.query.categoryId) : null;
 
-    const dummyPopularBooks = [ // 이 변수는 더미데이터입니다. 구현을 다하면 제거해주세요.
-        { title: 'The Hobbit', author: 'J.R.R Tolkien', categories: 'Fantasy', borrow_count: 10 },
-        { title: 'The Lord of the Rings', author: 'J.R.R Tolkien', categories: 'Fantasy', borrow_count: 8 },
-        { title: 'Foundation', author: 'Isaac Asimov', categories: 'Science Fiction', borrow_count: 12 },
-        { title: 'And Then There Were None', author: 'Agatha Christie', categories: 'Mystery', borrow_count: 15 },
-        { title: 'Dune', author: 'Frank Herbert', categories: 'Science Fiction, Fantasy', borrow_count: 9 },
-        { title: 'The Silmarillion', author: 'J.R.R Tolkien', categories: 'Fantasy', borrow_count: 5 },
-    ];
-
-    const dummyPopularBooksByCategory = { // 이 변수는 더미데이터입니다. 구현을 다하면 제거해주세요.
-        'Fantasy': [
-            { title: 'The Hobbit', author: 'J.R.R Tolkien', categories: 'Fantasy', borrow_count: 10 },
-            { title: 'The Lord of the Rings', author: 'J.R.R Tolkien', categories: 'Fantasy', borrow_count: 8 },
-            { title: 'Dune', author: 'Frank Herbert', categories: 'Science Fiction, Fantasy', borrow_count: 9 },
-            { title: 'The Silmarillion', author: 'J.R.R Tolkien', categories: 'Fantasy', borrow_count: 5 },
-        ],
-    };
-
-    const dummyCategories = [ // 이 변수는 더미데이터입니다. 구현을 다하면 제거해주세요.
-        { id: 1, name: 'Fantasy' },
-        { id: 2, name: 'Science Fiction' },
-        { id: 3, name: 'Mystery' },
-    ];
-
     try {
         /*
             TODO: 차트 페이지를 렌더링하는 코드를 작성하세요.
         */
+        const popularBooksResult = await db.query(`
+            SELECT
+                b.bid, b.title, b.author,
+                COALESCE(STRING_AGG(DISTINCT c.cname, ', ' ORDER BY c.cname), '')
+                AS categories,
+                COUNT(DISTINCT br.brid) AS borrow_count
+
+            FROM borrow br
+            JOIN product p ON br.pid = p.pid
+            JOIN book b ON p.bid = b.bid
+            LEFT JOIN book_category bc ON b.bid = bc.bid
+            LEFT JOIN category c ON bc.cid = c.cid
+
+            WHERE br.borrow_at >= CURRENT_DATE - INTERVAL '3 months'
+
+            GROUP BY b.bid, b.title, b.author
+
+            ORDER BY borrow_count DESC, b.title ASC;
+        `);
+        
+        const categoryResult = await db.query(`
+            SELECT
+                cid AS id,
+                cname AS name
+            FROM category
+            ORDER BY cname ASC;
+        `);
+
+        if (selectedCategoryId === null && categoryResult.rows.length > 0) {
+            selectedCategoryId = categoryResult.rows[0].id;
+        }
+
+        let popularBooksByCategory = {};
+
+        if (selectedCategoryId !== null) {
+            const categoryBooksResult = await db.query(`
+                SELECT b.bid, b.title, b.author, COALESCE(
+                    STRING_AGG(DISTINCT c.cname, ', ' ORDER BY c.cname), ''
+                ) AS categories,
+                    COUNT(DISTINCT br.brid) AS borrow_count
+                
+                FROM borrow br
+                JOIN product p ON br.pid = p.pid
+                JOIN book b ON p.bid = b.bid
+                LEFT JOIN book_category bc ON b.bid = bc.bid
+                LEFT JOIN category c ON bc.cid = c.cid
+
+                WHERE br.borrow_at >= CURRENT_DATE - INTERVAL '3 months'
+                    AND EXISTS(
+                        SELECT 1
+                        FROM book_category bc2
+                        WHERE bc2.bid = b.bid
+                            AND bc2.cid = $1
+                    )
+                
+                GROUP BY b.bid, b.title, b.author
+
+                ORDER BY borrow_count DESC, b.title ASC;
+                `, [selectedCategoryId]);
+
+            const selectedCategory = categoryResult.rows.find(
+                category => category.id === selectedCategoryId
+            );
+
+            if (selectedCategory) {
+                popularBooksByCategory[selectedCategory.name] = categoryBooksResult.rows;
+            }
+        }
+        
         res.render('pages/charts', {
             title: 'Charts',
-            popularBooks: dummyPopularBooks,
-            popularBooksByCategory: dummyPopularBooksByCategory,
-            categories: dummyCategories,
+            popularBooks: popularBooksResult.rows,
+            popularBooksByCategory: popularBooksByCategory,
+            categories: categoryResult.rows,
             selectedCategoryId
         });
     } catch (err) {
