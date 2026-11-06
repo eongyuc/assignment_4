@@ -449,7 +449,7 @@ const postReturnBook = async (req, res, next) => {
 
     try {
         /*
-            TODO: 자신이 책을 빌린 기록을 반납 처리하는 코드를 작성해주세요.
+            cODO: 자신이 책을 빌린 기록을 반납 처리하는 코드를 작성해주세요.
             다른 사람이 빌린 책은 반납할 수 없어야 합니다.
         */
         // 1. 올바른 대출 기록 ID인지 확인
@@ -509,7 +509,7 @@ const getBookInstances = async (req, res, next) => {
 
     try {
         /*
-            TODO: 특정 동일한 책의 개별 리스트를 불러오는 코드를 작성해주세요.
+            cODO: 특정 동일한 책의 개별 리스트를 불러오는 코드를 작성해주세요.
         */
         // 1. 올바른 도서 ID인지 확인.
         if (!Number.isSafeInteger(bookId) || bookId < 1) {
