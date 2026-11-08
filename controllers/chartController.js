@@ -26,7 +26,7 @@ const getChartsPage = async (req, res, next) => {
 
             ORDER BY borrow_count DESC, b.title ASC;
         `);
-        
+
         const categoryResult = await db.query(`
             SELECT
                 cid AS id,
@@ -75,13 +75,69 @@ const getChartsPage = async (req, res, next) => {
                 popularBooksByCategory[selectedCategory.name] = categoryBooksResult.rows;
             }
         }
-        
+
+        // 월별 대출 횟수 조회
+        const monthlyBorrowResult = await db.query(`
+            SELECT
+                TO_CHAR(m.month, 'YYYY-MM') AS month,
+                COUNT(br.brid) AS borrow_count
+            FROM generate_series(
+                DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '5 months',
+                DATE_TRUNC('month', CURRENT_DATE),
+                INTERVAL '1 month'
+            ) AS m(month)
+            LEFT JOIN borrow br
+                ON br.borrow_at >= m.month
+                AND br.borrow_at < m.month + INTERVAL '1 month'
+
+            GROUP BY m.month
+            ORDER BY m.month ASC;
+            `);
+
+        const monthlyBorrows = monthlyBorrowResult.rows;
+
+        const maxBorrowCount = Math.max(
+            1,
+            ...monthlyBorrows.map(item => Number(item.borrow_count))
+        );
+
+
+        const inventoryResult = await db.query(`
+        SELECT
+            (SELECT COUNT(*) FROM product) AS total_copies,
+
+            (
+                SELECT COUNT(DISTINCT pid)
+                FROM borrow
+                WHERE return_at IS NULL
+            ) AS borrowed_copies;
+        `);
+
+        const totalCopies = Number(inventoryResult.rows[0].total_copies);
+        const borrowedCopies = Number(inventoryResult.rows[0].borrowed_copies);
+
+        const availableCopies = totalCopies - borrowedCopies;
+
+        const borrowingRate = totalCopies === 0
+            ? 0
+            : (borrowedCopies / totalCopies * 100).toFixed(1);
+
+
         res.render('pages/charts', {
             title: 'Charts',
             popularBooks: popularBooksResult.rows,
             popularBooksByCategory: popularBooksByCategory,
             categories: categoryResult.rows,
-            selectedCategoryId
+            selectedCategoryId,
+            monthlyBorrows: monthlyBorrowResult.rows,
+            maxBorrowCount: maxBorrowCount,
+
+            inventory: {
+                totalCopies,
+                borrowedCopies,
+                availableCopies,
+                borrowingRate
+            }
         });
     } catch (err) {
         next(err);

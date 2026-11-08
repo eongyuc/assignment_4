@@ -1,51 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %></title>
+    <title>
+        <%= title %>
+    </title>
     <link rel="stylesheet" href="/css/style.css">
 </head>
+
 <body>
     <div class="container">
         <%- include('../components/header') %>
-        <main>
-            <div class="card mb-3">
-                <h2 class="mb-3">Overall Popular Books (Last 3 Months)</h2>
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Title</th>
-                            <th>Author</th>
-                            <th>Categories</th>
-                            <th>Borrow Count</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <% popularBooks.forEach(book => { %>
-                            <tr>
-                                <td><%= book.title %></td>
-                                <td><%= book.author %></td>
-                                <td><%= book.categories %></td>
-                                <td><%= book.borrow_count %></td>
-                            </tr>
-                        <% }); %>
-                    </tbody>
-                </table>
-            </div>
 
-            <div class="card">
-                <h2 class="mb-3">Popular Books by Category</h2>
-                <form action="/charts" method="GET" class="d-flex gap-2 mb-3">
-                    <label for="categorySelect" class="form-label">Select Category:</label>
-                    <select name="categoryId" id="categorySelect" class="form-select" onchange="this.form.submit()">
-                        <% categories.forEach(category => { %>
-                            <option value="<%= category.id %>" <%= selectedCategoryId === category.id ? 'selected' : '' %>><%= category.name %></option>
-                        <% }); %>
-                    </select>
-                </form>
-
-                <% for (const categoryName in popularBooksByCategory) { %>
+            <main>
+                <div class="card mb-3">
+                    <h2 class="mb-3">Overall Popular Books (Last 3 Months)</h2>
                     <table class="table table-striped">
                         <thead>
                             <tr>
@@ -56,19 +27,159 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <% popularBooksByCategory[categoryName].forEach(book => { %>
+                            <% popularBooks.forEach(book=> { %>
                                 <tr>
-                                    <td><%= book.title %></td>
-                                    <td><%= book.author %></td>
-                                    <td><%= book.categories %></td>
-                                    <td><%= book.borrow_count %></td>
+                                    <td>
+                                        <%= book.title %>
+                                    </td>
+                                    <td>
+                                        <%= book.author %>
+                                    </td>
+                                    <td>
+                                        <%= book.categories %>
+                                    </td>
+                                    <td>
+                                        <%= book.borrow_count %>
+                                    </td>
                                 </tr>
-                            <% }); %>
+                                <% }); %>
                         </tbody>
                     </table>
-                <% } %>
+                </div>
+
+                <div class="card">
+                    <h2 class="mb-3">Popular Books by Category</h2>
+                    <form action="/charts" method="GET" class="d-flex gap-2 mb-3">
+                        <label for="categorySelect" class="form-label">Select Category:</label>
+                        <select name="categoryId" id="categorySelect" class="form-select" onchange="this.form.submit()">
+                            <% categories.forEach(category=> { %>
+                                <option value="<%= category.id %>" <%=selectedCategoryId===category.id ? 'selected' : ''
+                                    %>><%= category.name %>
+                                </option>
+                                <% }); %>
+                        </select>
+                    </form>
+
+                    <% for (const categoryName in popularBooksByCategory) { %>
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Author</th>
+                                    <th>Categories</th>
+                                    <th>Borrow Count</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% popularBooksByCategory[categoryName].forEach(book=> { %>
+                                    <tr>
+                                        <td>
+                                            <%= book.title %>
+                                        </td>
+                                        <td>
+                                            <%= book.author %>
+                                        </td>
+                                        <td>
+                                            <%= book.categories %>
+                                        </td>
+                                        <td>
+                                            <%= book.borrow_count %>
+                                        </td>
+                                    </tr>
+                                    <% }); %>
+                            </tbody>
+                        </table>
+                        <% } %>
+                </div>
+                <div class="card mb-3">
+                    <h2 class="mb-3">Monthly Borrowing Statics (Last 6 Months)</h2>
+
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Month</th>
+                                <th>Borrow Count</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% monthlyBorrows.forEach(item=> { %>
+                                <tr>
+                                    <td>
+                                        <%= item.month %>
+                                    </td>
+                                    <td>
+                                        <%= item.borrow_count %>
+                                    </td>
+                                </tr>
+                                <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="monthly-chart">
+                    <% monthlyBorrows.forEach(item=> { %>
+                        <% const barWidth=Number(item.borrow_count) / maxBorrowCount * 100; %>
+
+                            <div class="monthly-chart-row">
+                                <span class="monthly-chart-label">
+                                    <%= item.month %>
+                                </span>
+
+                                <div class="monthly-chart-track">
+                                    <div class="monthly-chart-bar" style="width: <%= barWidth %>%;">
+                                    </div>
+                                </div>
+
+                                <span class="monthly-chart-count">
+                                    <%= item.borrow_count %>
+                                </span>
+                            </div>
+                            <% }); %>
+                </div>
+    </div>
+
+    <div class="card mb-3">
+        <h2 class="mb-3">Library Inventory Statistics</h2>
+
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Total Copies</th>
+                    <th>Borrowed Copies</th>
+                    <th>Available Copies</th>
+                    <th>Borrowing Rate</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <%= inventory.totalCopies %>
+                    </td>
+                    <td>
+                        <%= inventory.borrowedCopies %>
+                    </td>
+                    <td>
+                        <%= inventory.availableCopies %>
+                    </td>
+                    <td>
+                        <%= inventory.borrowingRate %>%
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="inventory-chart">
+            <div class="inventory-chart-borrowed" style="width: <%= inventory.borrowingRate %>%;">
             </div>
-        </main>
+        </div>
+
+        <p class="inventory-description">
+            Borrowed: <%= inventory.borrowedCopies %> /
+                Total: <%= inventory.totalCopies %>
+        </p>
+    </div>
+
+    </main>
     </div>
 </body>
+
 </html>
