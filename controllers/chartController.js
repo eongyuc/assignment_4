@@ -5,7 +5,7 @@ const getChartsPage = async (req, res, next) => {
 
     try {
         /*
-            TODO: 차트 페이지를 렌더링하는 코드를 작성하세요.
+            clear! TODO: 차트 페이지를 렌더링하는 코드를 작성하세요.
         */
         const popularBooksResult = await db.query(`
             SELECT

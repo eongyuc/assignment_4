@@ -52,7 +52,7 @@ const getBooksPage = async (req, res, next) => {
 
     try {
         /*
-            cODO: 검색어, 정렬 기준에 맞춰 책 목록을 출력하는 페이지를 렌더링하는 코드를 작성하세요.
+            clear! TODO: 검색어, 정렬 기준에 맞춰 책 목록을 출력하는 페이지를 렌더링하는 코드를 작성하세요.
         */
         // 1. DB에서 도서 목록 조회
         const bookResult = await db.query(`
@@ -111,7 +111,7 @@ const getAddBookPage = async (req, res, next) => {
     ];
     try {
         /*
-            cODO: 책을 추가하는 페이지를 렌더링 하는 코드를 작성하세요.
+            clear! TODO: 책을 추가하는 페이지를 렌더링 하는 코드를 작성하세요.
             책 추가 시 작가와 카테고리를 선택해야하므로 현재 카테고리 목록과 작가 목록을 불러와야 합니다.
         */
         // 카테고리 목록 가져오기.
@@ -182,7 +182,7 @@ const postAddBook = async (req, res, next) => {
 
     try {
         /*
-            cODO: 책을 DB에 추가하는 작업을 수행하는 코드를 작성하세요.
+            clear! TODO: 책을 DB에 추가하는 작업을 수행하는 코드를 작성하세요.
             기존에 없는 카테고리와 저자 또한 추가해줘야 합니다.
         */
 
@@ -336,7 +336,7 @@ const postDeleteBookInstance = async (req, res, next) => {
 
     try {
         /*
-            TODO: 책 한 권을 제거하는 작업을 수행하는 코드를 작성하세요.
+            clear! TODO: 책 한 권을 제거하는 작업을 수행하는 코드를 작성하세요.
             동일한 책을 모두 제거하면 해당 책에 대한 정보도 지워지도록 구현해주세요.
         */
         await client.query('BEGIN');
@@ -429,7 +429,7 @@ const postBorrowBook = async (req, res, next) => {
 
     try {
         /*
-            cODO: 특정 책을 대여하는 작업을 수행하는 코드를 작성하세요.
+            clear! TODO: 특정 책을 대여하는 작업을 수행하는 코드를 작성하세요.
             명세에 있는 조건들을 어기는 작업일 경우에는 다음과 같이 에러페이지로 유도하면 됩니다.
 
             ```
@@ -538,7 +538,7 @@ const postReturnBook = async (req, res, next) => {
 
     try {
         /*
-            cODO: 자신이 책을 빌린 기록을 반납 처리하는 코드를 작성해주세요.
+            clear! TODO: 자신이 책을 빌린 기록을 반납 처리하는 코드를 작성해주세요.
             다른 사람이 빌린 책은 반납할 수 없어야 합니다.
         */
         // 1. 올바른 대출 기록 ID인지 확인
@@ -598,7 +598,7 @@ const getBookInstances = async (req, res, next) => {
 
     try {
         /*
-            cODO: 특정 동일한 책의 개별 리스트를 불러오는 코드를 작성해주세요.
+            clear! TODO: 특정 동일한 책의 개별 리스트를 불러오는 코드를 작성해주세요.
         */
         // 1. 올바른 도서 ID인지 확인.
         if (!Number.isSafeInteger(bookId) || bookId < 1) {

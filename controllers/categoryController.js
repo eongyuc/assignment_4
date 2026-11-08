@@ -4,7 +4,7 @@ const getCategoriesPage = async (req, res, next) => {
 
     try {
         /*
-            cODO: 모든 카테고리를 출력하는 페이지를 렌더링하는 코드를 작성하세요.
+            clear! TODO: 모든 카테고리를 출력하는 페이지를 렌더링하는 코드를 작성하세요.
         */
 
         const categoryResult = await db.query(`
@@ -43,7 +43,7 @@ const postDeleteCategory = async (req, res, next) => {
 
     try {
         /*
-            TODO: 카테고리를 제거하는 코드를 작성하세요.
+            clear! TODO: 카테고리를 제거하는 코드를 작성하세요.
             만약 해당 카테고리에 포함된 책이 있다면 책에서 해당 카테고리만 지우고 나머지 카테고리는 유지하면 됩니다.
         */
         

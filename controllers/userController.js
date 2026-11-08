@@ -5,7 +5,7 @@ const getUsersPage = async (req, res, next) => {
 
     try {
         /*
-            cODO: 검색어에 맞춰 유저 목록을 출력하는 페이지를 렌더링하는 코드를 작성하세요.
+            cleaer! TODO: 검색어에 맞춰 유저 목록을 출력하는 페이지를 렌더링하는 코드를 작성하세요.
         */
 
         const searchKeyword = typeof query === 'string' ? query.trim() : '';

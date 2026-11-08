@@ -9,7 +9,7 @@ const getBorrowingsPage = async (req, res, next) => {
 
     try {
         /*
-            TODO: 유저의 대여 기록을 모두 출력하는 페이지를 렌더링하는 코드를 작성하세요.
+            cleaer! TODO: 유저의 대여 기록을 모두 출력하는 페이지를 렌더링하는 코드를 작성하세요.
         */
         // 1. 현재 사용자의 대출 기록 조회
         const borrowingResult = await db.query(`

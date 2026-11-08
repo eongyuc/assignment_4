@@ -1,5 +1,5 @@
 const db = require('../config/db');
-const adminCode = '2022084602' // TODO: admin code(본인 학번)를 추가하세요.
+const adminCode = '2022084602' // clear! TODO: admin code(본인 학번)를 추가하세요.
 
 const getLoginPage = (req, res) => {
     res.render('pages/login', { title: 'Login' });
